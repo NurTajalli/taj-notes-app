@@ -89,6 +89,8 @@ button {
 button.primary { background: var(--accent); color: #fff; font-weight: 600; }
 button.danger { background: var(--danger); color: #fff; font-weight: 600; }
 
+.editor[hidden] { display: none; }
+
 .editor {
   position: fixed;
   inset: 0;
