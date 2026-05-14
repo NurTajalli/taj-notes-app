@@ -53,6 +53,16 @@ async function ensureDates() {
   }
 }
 
+// --- Moods (one per entry) ---
+const MOODS = [
+  { key: "happy", emoji: "😄", label: "Happy" },
+  { key: "sad", emoji: "😢", label: "Sad" },
+  { key: "anger", emoji: "😠", label: "Anger" },
+  { key: "overwhelm", emoji: "😩", label: "Overwhelmed" },
+  { key: "aggrieved", emoji: "😞", label: "Aggrieved" },
+];
+const moodEmoji = (key) => MOODS.find((m) => m.key === key)?.emoji || "";
+
 // --- Date helpers (work in local time, format "YYYY-MM-DD") ---
 function isoDate(d) {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -79,6 +89,7 @@ function entryDateLabel(dateStr) {
 let entries = [];
 let editingId = null;        // null = closed, "new", or an entry id
 let draftAttachments = [];   // attachments in the currently open editor
+let draftMood = null;        // mood key in the currently open editor
 let objectUrls = [];         // tracked so we can revoke them
 
 // --- Elements ---
@@ -88,6 +99,7 @@ const searchInput = document.getElementById("searchInput");
 const editorEl = document.getElementById("editor");
 const titleInput = document.getElementById("titleInput");
 const dateInput = document.getElementById("dateInput");
+const moodPicker = document.getElementById("moodPicker");
 const bodyInput = document.getElementById("bodyInput");
 const attachmentsEl = document.getElementById("attachments");
 const fileInput = document.getElementById("fileInput");
@@ -134,16 +146,43 @@ function render() {
     }
 
     const count = (entry.attachments || []).length;
+    const mood = moodEmoji(entry.mood);
     const li = document.createElement("li");
     li.className = "note-card";
     li.innerHTML = `<h3></h3><p></p><time></time>`;
     li.querySelector("h3").textContent = entry.title || "Untitled";
     li.querySelector("p").textContent = entry.body || "No content";
     li.querySelector("time").textContent =
+      (mood ? mood + "  " : "") +
       entryDateLabel(entry.date) +
       (count ? ` · ${count} attachment${count > 1 ? "s" : ""}` : "");
     li.addEventListener("click", () => openEditor(entry.id));
     listEl.appendChild(li);
+  });
+}
+
+// --- Mood picker ---
+function buildMoodPicker() {
+  moodPicker.innerHTML = "";
+  MOODS.forEach((m) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mood-btn";
+    btn.dataset.key = m.key;
+    btn.textContent = m.emoji;
+    btn.title = m.label;
+    btn.setAttribute("aria-label", m.label);
+    btn.addEventListener("click", () => {
+      draftMood = draftMood === m.key ? null : m.key; // tap again to clear
+      updateMoodSelection();
+    });
+    moodPicker.appendChild(btn);
+  });
+}
+
+function updateMoodSelection() {
+  moodPicker.querySelectorAll(".mood-btn").forEach((b) => {
+    b.classList.toggle("selected", b.dataset.key === draftMood);
   });
 }
 
@@ -203,6 +242,8 @@ function openEditor(id) {
   titleInput.value = entry ? entry.title : "";
   dateInput.value = entry ? entry.date : todayStr();
   bodyInput.value = entry ? entry.body : "";
+  draftMood = entry ? entry.mood || null : null;
+  updateMoodSelection();
   // copy the array so edits aren't applied until Save
   draftAttachments = entry ? (entry.attachments || []).map((a) => ({ ...a })) : [];
   deleteBtn.hidden = !entry;
@@ -214,6 +255,7 @@ function openEditor(id) {
 function closeEditor() {
   editingId = null;
   draftAttachments = [];
+  draftMood = null;
   clearObjectUrls();
   editorEl.hidden = true;
 }
@@ -231,11 +273,20 @@ async function saveCurrent() {
 
   let entry;
   if (editingId === "new") {
-    entry = { id: Date.now().toString(), title, date, body, updated: Date.now(), attachments: draftAttachments };
+    entry = {
+      id: Date.now().toString(),
+      title,
+      date,
+      mood: draftMood,
+      body,
+      updated: Date.now(),
+      attachments: draftAttachments,
+    };
   } else {
     entry = entries.find((e) => e.id === editingId);
     entry.title = title;
     entry.date = date;
+    entry.mood = draftMood;
     entry.body = body;
     entry.updated = Date.now();
     entry.attachments = draftAttachments;
@@ -272,6 +323,7 @@ fileInput.addEventListener("change", () => {
 });
 
 // --- Wire up controls ---
+buildMoodPicker();
 document.getElementById("newBtn").addEventListener("click", () => openEditor("new"));
 document.getElementById("cancelBtn").addEventListener("click", closeEditor);
 document.getElementById("saveBtn").addEventListener("click", saveCurrent);
