@@ -1,5 +1,6 @@
-// Simple offline cache for the app shell.
-const CACHE = "notes-v9";
+// Network-first service worker: always serves fresh code when online,
+// falls back to the cache only when offline.
+const CACHE = "journal-v10";
 const ASSETS = [
   "./",
   "./index.html",
@@ -20,15 +21,31 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (e) => {
+  const req = e.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  // Let cross-origin requests (Firebase CDN, Google auth) go straight to network.
+  if (url.origin !== self.location.origin) return;
+
+  // Network-first: try network, cache the fresh copy, fall back to cache offline.
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req).then((cached) => cached || caches.match("./")))
   );
 });
