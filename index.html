@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Notes</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1f6feb" />
+
+  <!-- iOS home-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Notes" />
+  <link rel="apple-touch-icon" href="./icon-180.png" />
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header>
+    <h1>Notes</h1>
+    <button id="newBtn" class="primary" aria-label="New note">+ New</button>
+  </header>
+
+  <main>
+    <ul id="list" class="list"></ul>
+    <p id="empty" class="empty">No notes yet. Tap <strong>+ New</strong> to create one.</p>
+  </main>
+
+  <!-- Editor overlay -->
+  <div id="editor" class="editor" hidden>
+    <div class="editor-bar">
+      <button id="cancelBtn">Cancel</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+    <input id="titleInput" class="title-input" type="text" placeholder="Title" />
+    <textarea id="bodyInput" class="body-input" placeholder="Write your note..."></textarea>
+    <button id="deleteBtn" class="danger" hidden>Delete note</button>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
