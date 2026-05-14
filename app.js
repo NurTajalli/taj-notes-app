@@ -44,11 +44,14 @@ async function migrateFromLocalStorage() {
   localStorage.removeItem("notes.v1");
 }
 
-// Backfill `date` on entries created before dates existed
-async function ensureDates() {
+// Backfill `created` (+ `date`) on entries made before timestamps existed
+async function ensureCreated() {
   for (const e of entries) {
-    if (!e.date) {
-      e.date = isoDate(new Date(e.updated));
+    if (typeof e.created !== "number" || e.created <= 0) {
+      const fromId = Number(e.id);
+      e.created =
+        Number.isFinite(fromId) && fromId > 1e12 ? fromId : e.updated || Date.now();
+      e.date = klDateStr(e.created);
       await putEntry(e);
     }
   }
@@ -64,26 +67,30 @@ const MOODS = [
 ];
 const moodEmoji = (key) => MOODS.find((m) => m.key === key)?.emoji || "";
 
-// --- Date helpers (work in local time, format "YYYY-MM-DD") ---
-function isoDate(d) {
-  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
-const todayStr = () => isoDate(new Date());
+// --- Date / time helpers (Kuala Lumpur timezone, 24-hour clock) ---
+const TZ = "Asia/Kuala_Lumpur";
 
-function monthLabel(dateStr) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
-  });
+function klDateStr(ms) {
+  // "YYYY-MM-DD" in Kuala Lumpur time — used for grouping/sorting fallback
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(ms);
+  const get = (t) => parts.find((p) => p.type === t).value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-function entryDateLabel(dateStr) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+function klMonthLabel(ms) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ, month: "long", year: "numeric",
+  }).format(ms);
+}
+
+function klDateTimeLabel(ms) {
+  // e.g. "Wed, 14 May 2026, 16:30" — 24-hour, Kuala Lumpur time
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ, weekday: "short", day: "numeric", month: "short",
+    year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(ms);
 }
 
 // --- State ---
@@ -91,6 +98,7 @@ let entries = [];
 let editingId = null;        // null = closed, "new", or an entry id
 let draftAttachments = [];   // attachments in the currently open editor
 let draftMood = null;        // mood key in the currently open editor
+let draftCreated = null;     // creation timestamp for the entry being edited
 let objectUrls = [];         // tracked so we can revoke them
 
 // --- Elements ---
@@ -99,14 +107,14 @@ const emptyEl = document.getElementById("empty");
 const searchInput = document.getElementById("searchInput");
 const editorEl = document.getElementById("editor");
 const titleInput = document.getElementById("titleInput");
-const dateInput = document.getElementById("dateInput");
+const entryDate = document.getElementById("entryDate");
 const moodPicker = document.getElementById("moodPicker");
 const bodyInput = document.getElementById("bodyInput");
 const attachmentsEl = document.getElementById("attachments");
 const fileInput = document.getElementById("fileInput");
 const deleteBtn = document.getElementById("deleteBtn");
 
-// --- Render list (Read) — filtered by search, sorted by date, grouped by month ---
+// --- Render list (Read) — filtered by search, sorted by time, grouped by month ---
 function render() {
   const q = searchInput.value.trim().toLowerCase();
   listEl.innerHTML = "";
@@ -120,11 +128,8 @@ function render() {
     );
   }
 
-  // newest date first; same date -> most recently edited first
-  visible.sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-    return b.updated - a.updated;
-  });
+  // newest first by creation time
+  visible.sort((a, b) => (b.created || 0) - (a.created || 0));
 
   if (visible.length === 0) {
     emptyEl.hidden = false;
@@ -137,7 +142,7 @@ function render() {
 
   let currentMonth = null;
   visible.forEach((entry) => {
-    const m = monthLabel(entry.date);
+    const m = klMonthLabel(entry.created);
     if (m !== currentMonth) {
       currentMonth = m;
       const head = document.createElement("li");
@@ -155,7 +160,7 @@ function render() {
     li.querySelector("p").textContent = entry.body || "No content";
     li.querySelector("time").textContent =
       (mood ? mood + "  " : "") +
-      entryDateLabel(entry.date) +
+      klDateTimeLabel(entry.created) +
       (count ? ` · ${count} attachment${count > 1 ? "s" : ""}` : "");
     li.addEventListener("click", () => openEditor(entry.id));
     listEl.appendChild(li);
@@ -265,7 +270,9 @@ function openEditor(id) {
   editingId = id;
   const entry = entries.find((e) => e.id === id);
   titleInput.value = entry ? entry.title : "";
-  dateInput.value = entry ? entry.date : todayStr();
+  // date/time is fixed at creation — shown read-only, never edited
+  draftCreated = entry ? entry.created : Date.now();
+  entryDate.textContent = klDateTimeLabel(draftCreated);
   bodyInput.value = entry ? entry.body : "";
   draftMood = entry ? entry.mood || null : null;
   updateMoodSelection();
@@ -281,6 +288,7 @@ function closeEditor() {
   editingId = null;
   draftAttachments = [];
   draftMood = null;
+  draftCreated = null;
   clearObjectUrls();
   editorEl.hidden = true;
 }
@@ -296,7 +304,6 @@ function notifyChange(entry) {
 async function saveCurrent() {
   const title = titleInput.value.trim();
   const body = bodyInput.value.trim();
-  const date = dateInput.value || todayStr();
 
   if (!title && !body && draftAttachments.length === 0) {
     closeEditor();
@@ -305,10 +312,13 @@ async function saveCurrent() {
 
   let entry;
   if (editingId === "new") {
+    // date/time is fixed at creation and can't be edited afterwards
+    const created = draftCreated || Date.now();
     entry = {
-      id: Date.now().toString(),
+      id: created.toString(),
       title,
-      date,
+      created,
+      date: klDateStr(created),
       mood: draftMood,
       body,
       updated: Date.now(),
@@ -317,11 +327,11 @@ async function saveCurrent() {
   } else {
     entry = entries.find((e) => e.id === editingId);
     entry.title = title;
-    entry.date = date;
     entry.mood = draftMood;
     entry.body = body;
     entry.updated = Date.now();
     entry.attachments = draftAttachments;
+    // created / date stay fixed
   }
 
   await putEntry(entry);
@@ -386,7 +396,7 @@ async function requestPersistentStorage() {
   await requestPersistentStorage();
   await migrateFromLocalStorage();
   entries = await getAllEntries();
-  await ensureDates();
+  await ensureCreated();
   render();
 })();
 

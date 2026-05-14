@@ -77,6 +77,7 @@ function closeAuthModal() {
     await setDoc(entryRef(uid, entry.id), {
       title: entry.title || "",
       date: entry.date || "",
+      created: entry.created || 0,
       mood: entry.mood ?? null,
       body: entry.body || "",
       updated: entry.updated || Date.now(),
@@ -101,6 +102,7 @@ function closeAuthModal() {
           id,
           title: cloud.title || "",
           date: cloud.date || "",
+          created: cloud.created || Number(id) || cloud.updated || 0,
           mood: cloud.mood ?? null,
           body: cloud.body || "",
           updated: cloud.updated || 0,
