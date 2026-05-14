@@ -204,34 +204,58 @@ function renderAttachments() {
     const item = document.createElement("div");
     item.className = "attachment";
 
-    const preview = document.createElement("div");
-    preview.className = "preview";
-    if (att.type.startsWith("image/")) {
-      const img = document.createElement("img");
-      img.src = url;
-      preview.appendChild(img);
-    } else {
-      const icon = document.createElement("div");
-      icon.className = "file-icon";
-      icon.textContent = att.type.startsWith("video/") ? "🎬" : "📄";
-      preview.appendChild(icon);
-    }
-    preview.addEventListener("click", () => window.open(url, "_blank"));
-
-    const name = document.createElement("span");
-    name.className = "att-name";
-    name.textContent = att.name;
-
+    // Remove button — floats in the corner of the attachment
     const remove = document.createElement("button");
     remove.className = "att-remove";
     remove.type = "button";
     remove.textContent = "✕";
+    remove.title = "Remove";
     remove.addEventListener("click", () => {
       draftAttachments = draftAttachments.filter((a) => a.id !== att.id);
       renderAttachments();
     });
 
-    item.append(preview, name, remove);
+    if (att.type.startsWith("image/")) {
+      // Photo: shown full-width; tap to open full size in a new tab
+      const link = document.createElement("a");
+      link.className = "att-link";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      const img = document.createElement("img");
+      img.className = "att-media";
+      img.src = url;
+      img.alt = att.name;
+      link.appendChild(img);
+      item.append(link, remove);
+    } else if (att.type.startsWith("video/")) {
+      // Video: inline player, auto-plays muted on a loop; use controls for sound
+      const video = document.createElement("video");
+      video.className = "att-media";
+      video.src = url;
+      video.controls = true;
+      video.playsInline = true;
+      video.muted = true;
+      video.autoplay = true;
+      video.loop = true;
+      item.append(video, remove);
+    } else {
+      // Any other file: a row that opens the file in a new tab when tapped
+      const link = document.createElement("a");
+      link.className = "att-file";
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      const icon = document.createElement("span");
+      icon.className = "file-icon";
+      icon.textContent = "📄";
+      const name = document.createElement("span");
+      name.className = "att-name";
+      name.textContent = att.name;
+      link.append(icon, name);
+      item.append(link, remove);
+    }
+
     attachmentsEl.appendChild(item);
   });
 }
