@@ -43,6 +43,38 @@ async function migrateFromLocalStorage() {
   localStorage.removeItem("notes.v1");
 }
 
+// Backfill `date` on entries created before dates existed
+async function ensureDates() {
+  for (const e of entries) {
+    if (!e.date) {
+      e.date = isoDate(new Date(e.updated));
+      await putEntry(e);
+    }
+  }
+}
+
+// --- Date helpers (work in local time, format "YYYY-MM-DD") ---
+function isoDate(d) {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+const todayStr = () => isoDate(new Date());
+
+function monthLabel(dateStr) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function entryDateLabel(dateStr) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 // --- State ---
 let entries = [];
 let editingId = null;        // null = closed, "new", or an entry id
@@ -52,34 +84,67 @@ let objectUrls = [];         // tracked so we can revoke them
 // --- Elements ---
 const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("empty");
+const searchInput = document.getElementById("searchInput");
 const editorEl = document.getElementById("editor");
 const titleInput = document.getElementById("titleInput");
+const dateInput = document.getElementById("dateInput");
 const bodyInput = document.getElementById("bodyInput");
 const attachmentsEl = document.getElementById("attachments");
 const fileInput = document.getElementById("fileInput");
 const deleteBtn = document.getElementById("deleteBtn");
 
-// --- Render list (Read) ---
+// --- Render list (Read) — filtered by search, sorted by date, grouped by month ---
 function render() {
+  const q = searchInput.value.trim().toLowerCase();
   listEl.innerHTML = "";
-  emptyEl.hidden = entries.length > 0;
 
-  entries
-    .slice()
-    .sort((a, b) => b.updated - a.updated)
-    .forEach((entry) => {
-      const count = (entry.attachments || []).length;
-      const li = document.createElement("li");
-      li.className = "note-card";
-      li.innerHTML = `<h3></h3><p></p><time></time>`;
-      li.querySelector("h3").textContent = entry.title || "Untitled";
-      li.querySelector("p").textContent = entry.body || "No content";
-      li.querySelector("time").textContent =
-        new Date(entry.updated).toLocaleString() +
-        (count ? ` · ${count} attachment${count > 1 ? "s" : ""}` : "");
-      li.addEventListener("click", () => openEditor(entry.id));
-      listEl.appendChild(li);
-    });
+  let visible = entries.slice();
+  if (q) {
+    visible = visible.filter(
+      (e) =>
+        (e.title || "").toLowerCase().includes(q) ||
+        (e.body || "").toLowerCase().includes(q)
+    );
+  }
+
+  // newest date first; same date -> most recently edited first
+  visible.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.updated - a.updated;
+  });
+
+  if (visible.length === 0) {
+    emptyEl.hidden = false;
+    emptyEl.innerHTML = q
+      ? "No entries match your search."
+      : 'No entries yet. Tap <strong>+ New</strong> to create one.';
+    return;
+  }
+  emptyEl.hidden = true;
+
+  let currentMonth = null;
+  visible.forEach((entry) => {
+    const m = monthLabel(entry.date);
+    if (m !== currentMonth) {
+      currentMonth = m;
+      const head = document.createElement("li");
+      head.className = "month-header";
+      head.textContent = m;
+      listEl.appendChild(head);
+    }
+
+    const count = (entry.attachments || []).length;
+    const li = document.createElement("li");
+    li.className = "note-card";
+    li.innerHTML = `<h3></h3><p></p><time></time>`;
+    li.querySelector("h3").textContent = entry.title || "Untitled";
+    li.querySelector("p").textContent = entry.body || "No content";
+    li.querySelector("time").textContent =
+      entryDateLabel(entry.date) +
+      (count ? ` · ${count} attachment${count > 1 ? "s" : ""}` : "");
+    li.addEventListener("click", () => openEditor(entry.id));
+    listEl.appendChild(li);
+  });
 }
 
 // --- Attachment previews inside the editor ---
@@ -136,6 +201,7 @@ function openEditor(id) {
   editingId = id;
   const entry = entries.find((e) => e.id === id);
   titleInput.value = entry ? entry.title : "";
+  dateInput.value = entry ? entry.date : todayStr();
   bodyInput.value = entry ? entry.body : "";
   // copy the array so edits aren't applied until Save
   draftAttachments = entry ? (entry.attachments || []).map((a) => ({ ...a })) : [];
@@ -156,6 +222,7 @@ function closeEditor() {
 async function saveCurrent() {
   const title = titleInput.value.trim();
   const body = bodyInput.value.trim();
+  const date = dateInput.value || todayStr();
 
   if (!title && !body && draftAttachments.length === 0) {
     closeEditor();
@@ -164,10 +231,11 @@ async function saveCurrent() {
 
   let entry;
   if (editingId === "new") {
-    entry = { id: Date.now().toString(), title, body, updated: Date.now(), attachments: draftAttachments };
+    entry = { id: Date.now().toString(), title, date, body, updated: Date.now(), attachments: draftAttachments };
   } else {
     entry = entries.find((e) => e.id === editingId);
     entry.title = title;
+    entry.date = date;
     entry.body = body;
     entry.updated = Date.now();
     entry.attachments = draftAttachments;
@@ -209,11 +277,13 @@ document.getElementById("cancelBtn").addEventListener("click", closeEditor);
 document.getElementById("saveBtn").addEventListener("click", saveCurrent);
 document.getElementById("attachBtn").addEventListener("click", () => fileInput.click());
 deleteBtn.addEventListener("click", deleteCurrent);
+searchInput.addEventListener("input", render);
 
 // --- Boot ---
 (async function init() {
   await migrateFromLocalStorage();
   entries = await getAllEntries();
+  await ensureDates();
   render();
 })();
 

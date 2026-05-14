@@ -54,7 +54,30 @@ header h1 {
 
 main { padding: 12px 14px 40px; }
 
+.searchbar { margin-bottom: 12px; }
+
+.searchbar input {
+  font: inherit;
+  width: 100%;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
 .list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+.month-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 6px 4px 0;
+}
+
+.month-header:first-child { margin-top: 0; }
 
 .note-card {
   background: var(--card);
@@ -133,6 +156,7 @@ button.danger { background: var(--danger); color: #fff; font-weight: 600; }
 }
 
 .title-input { font-size: 20px; font-weight: 600; }
+.date-input { font-size: 15px; color: var(--muted); align-self: flex-start; }
 .body-input { min-height: 160px; resize: vertical; font-size: 16px; line-height: 1.5; }
 
 /* --- Attachments --- */

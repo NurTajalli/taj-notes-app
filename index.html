@@ -24,6 +24,9 @@
   </header>
 
   <main>
+    <div class="searchbar">
+      <input id="searchInput" type="search" placeholder="Search entries..." />
+    </div>
     <ul id="list" class="list"></ul>
     <p id="empty" class="empty">No entries yet. Tap <strong>+ New</strong> to create one.</p>
   </main>
@@ -37,6 +40,7 @@
 
     <div class="editor-scroll">
       <input id="titleInput" class="title-input" type="text" placeholder="Title" />
+      <input id="dateInput" class="date-input" type="date" />
       <textarea id="bodyInput" class="body-input" placeholder="Write your entry..."></textarea>
 
       <div id="attachments" class="attachments"></div>
