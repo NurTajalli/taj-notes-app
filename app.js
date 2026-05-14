@@ -331,8 +331,21 @@ document.getElementById("attachBtn").addEventListener("click", () => fileInput.c
 deleteBtn.addEventListener("click", deleteCurrent);
 searchInput.addEventListener("input", render);
 
+// --- Ask the browser to keep our data (resist iOS auto-eviction) ---
+async function requestPersistentStorage() {
+  if (!navigator.storage || !navigator.storage.persist) return;
+  try {
+    const already = await navigator.storage.persisted();
+    if (!already) {
+      const granted = await navigator.storage.persist();
+      console.log(granted ? "Storage is now persistent." : "Persistent storage not granted.");
+    }
+  } catch {}
+}
+
 // --- Boot ---
 (async function init() {
+  await requestPersistentStorage();
   await migrateFromLocalStorage();
   entries = await getAllEntries();
   await ensureDates();
