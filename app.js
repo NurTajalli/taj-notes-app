@@ -110,7 +110,7 @@ function render() {
   const q = searchInput.value.trim().toLowerCase();
   listEl.innerHTML = "";
 
-  let visible = entries.slice();
+  let visible = entries.filter((e) => !e.deleted);
   if (q) {
     visible = visible.filter(
       (e) =>
@@ -260,6 +260,13 @@ function closeEditor() {
   editorEl.hidden = true;
 }
 
+// Tell the optional cloud-sync module (sync.js) that an entry changed
+function notifyChange(entry) {
+  if (window.JournalApp && typeof window.JournalApp.onLocalChange === "function") {
+    window.JournalApp.onLocalChange(entry);
+  }
+}
+
 // --- Create / Update ---
 async function saveCurrent() {
   const title = titleInput.value.trim();
@@ -293,6 +300,7 @@ async function saveCurrent() {
   }
 
   await putEntry(entry);
+  notifyChange(entry);
   entries = await getAllEntries();
   render();
   closeEditor();
@@ -302,7 +310,12 @@ async function saveCurrent() {
 async function deleteCurrent() {
   if (editingId === "new") return closeEditor();
   if (!confirm("Delete this entry?")) return;
-  await removeEntry(editingId);
+  // Soft-delete (tombstone) so the deletion can sync to other devices.
+  const entry = entries.find((e) => e.id === editingId);
+  entry.deleted = true;
+  entry.updated = Date.now();
+  await putEntry(entry);
+  notifyChange(entry);
   entries = await getAllEntries();
   render();
   closeEditor();
@@ -351,6 +364,17 @@ async function requestPersistentStorage() {
   await ensureDates();
   render();
 })();
+
+// --- Expose a small API for the optional cloud-sync module (sync.js) ---
+window.JournalApp = {
+  getAllEntries,
+  putEntry,
+  reload: async () => {
+    entries = await getAllEntries();
+    render();
+  },
+  onLocalChange: null, // sync.js assigns this to mirror changes to the cloud
+};
 
 // --- Register service worker (offline support) ---
 if ("serviceWorker" in navigator) {

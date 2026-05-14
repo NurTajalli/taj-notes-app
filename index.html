@@ -20,7 +20,10 @@
 <body>
   <header>
     <h1>Journal Taj</h1>
-    <button id="newBtn" class="primary" aria-label="New entry">+ New</button>
+    <div class="header-actions">
+      <button id="authBtn" class="ghost-btn" type="button">Sign in</button>
+      <button id="newBtn" class="primary" aria-label="New entry">+ New</button>
+    </div>
   </header>
 
   <main>
@@ -54,5 +57,6 @@
   </div>
 
   <script src="./app.js"></script>
+  <script type="module" src="./sync.js"></script>
 </body>
 </html>

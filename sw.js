@@ -1,10 +1,11 @@
 // Simple offline cache for the app shell.
-const CACHE = "notes-v7";
+const CACHE = "notes-v8";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
+  "./sync.js",
   "./manifest.json",
   "./header.jpg",
   "./icon-180.png",
