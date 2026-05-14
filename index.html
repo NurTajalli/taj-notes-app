@@ -56,6 +56,20 @@
     </div>
   </div>
 
+  <!-- Sign-in modal (email + password — works inside the installed app) -->
+  <div id="authModal" class="auth-modal" hidden>
+    <div class="auth-box">
+      <h2>Sync your journal</h2>
+      <p class="auth-hint">Use your email and a password made just for this app. Tap "Create account" the first time, then "Sign in" after that.</p>
+      <input id="authEmail" type="email" placeholder="Email" autocomplete="username" />
+      <input id="authPass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password" />
+      <p id="authError" class="auth-error" hidden></p>
+      <button id="authSignIn" class="primary" type="button">Sign in</button>
+      <button id="authCreate" type="button">Create account</button>
+      <button id="authCancel" type="button">Cancel</button>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
   <script type="module" src="./sync.js"></script>
 </body>

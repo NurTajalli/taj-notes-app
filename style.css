@@ -242,3 +242,43 @@ button.danger { background: var(--danger); color: #fff; font-weight: 600; }
 }
 
 .editor .danger { align-self: stretch; margin-top: 4px; }
+
+/* --- Sign-in modal --- */
+.auth-modal[hidden] { display: none; }
+
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-box {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 22px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-box h2 { font-size: 20px; font-weight: 700; }
+.auth-hint { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+.auth-box input {
+  font: inherit;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.auth-error { font-size: 13px; color: var(--danger); line-height: 1.4; }
+.auth-box .primary { margin-top: 4px; }
