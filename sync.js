@@ -38,7 +38,7 @@ function setAuthLabel(text) {
 
   const {
     initializeApp,
-    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
     onAuthStateChanged, signOut,
     getFirestore, collection, doc, setDoc, getDocs,
   } = fb;
@@ -47,6 +47,36 @@ function setAuthLabel(text) {
   const auth = getAuth(app);
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
+
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  // Popup works in normal browser tabs; a standalone iOS Home Screen app
+  // can't open popups, so it must use the redirect flow.
+  async function signIn() {
+    try {
+      if (isStandalone) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    } catch (e) {
+      console.error("Sign-in error:", e);
+      const code = e.code || "";
+      if (!isStandalone && /popup|operation-not-supported/i.test(code)) {
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (e2) {
+          console.error("Redirect fallback error:", e2);
+        }
+      }
+      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+        alert("Sign-in failed:\n" + code + "\n" + (e.message || ""));
+      }
+    }
+  }
 
   const entryRef = (uid, id) => doc(db, "users", uid, "entries", id);
 
@@ -112,7 +142,14 @@ function setAuthLabel(text) {
   };
 
   // Complete a redirect-based sign-in, if one is in progress.
-  getRedirectResult(auth).catch((e) => console.warn("Redirect sign-in error:", e));
+  getRedirectResult(auth)
+    .then((res) => {
+      if (res && res.user) console.log("Redirect sign-in OK:", res.user.email);
+    })
+    .catch((e) => {
+      console.error("Redirect sign-in error:", e);
+      alert("Sign-in failed (redirect):\n" + (e.code || "") + "\n" + (e.message || ""));
+    });
 
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
@@ -123,6 +160,7 @@ function setAuthLabel(text) {
         await pullAndMerge(user.uid);
       } catch (e) {
         console.error("Sync failed:", e);
+        alert("Signed in, but sync failed:\n" + (e.code || "") + "\n" + (e.message || ""));
       }
     } else {
       setAuthLabel("Sign in");
@@ -134,7 +172,7 @@ function setAuthLabel(text) {
       if (currentUser) {
         if (confirm("Sign out? Your entries stay on this device.")) signOut(auth);
       } else {
-        signInWithRedirect(auth, provider);
+        signIn();
       }
     });
   }
