@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Notes</title>
+  <title>Journal Taj</title>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
@@ -12,20 +12,20 @@
   <!-- iOS home-screen app -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Notes" />
+  <meta name="apple-mobile-web-app-title" content="Journal Taj" />
   <link rel="apple-touch-icon" href="./icon-180.png" />
 
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header>
-    <h1>Notes</h1>
-    <button id="newBtn" class="primary" aria-label="New note">+ New</button>
+    <h1>Journal Taj</h1>
+    <button id="newBtn" class="primary" aria-label="New entry">+ New</button>
   </header>
 
   <main>
     <ul id="list" class="list"></ul>
-    <p id="empty" class="empty">No notes yet. Tap <strong>+ New</strong> to create one.</p>
+    <p id="empty" class="empty">No entries yet. Tap <strong>+ New</strong> to create one.</p>
   </main>
 
   <!-- Editor overlay -->
@@ -34,9 +34,18 @@
       <button id="cancelBtn">Cancel</button>
       <button id="saveBtn" class="primary">Save</button>
     </div>
-    <input id="titleInput" class="title-input" type="text" placeholder="Title" />
-    <textarea id="bodyInput" class="body-input" placeholder="Write your note..."></textarea>
-    <button id="deleteBtn" class="danger" hidden>Delete note</button>
+
+    <div class="editor-scroll">
+      <input id="titleInput" class="title-input" type="text" placeholder="Title" />
+      <textarea id="bodyInput" class="body-input" placeholder="Write your entry..."></textarea>
+
+      <div id="attachments" class="attachments"></div>
+
+      <button id="attachBtn" class="attach-btn" type="button">📎 Add photo / video / file</button>
+      <input id="fileInput" type="file" multiple hidden />
+
+      <button id="deleteBtn" class="danger" type="button" hidden>Delete entry</button>
+    </div>
   </div>
 
   <script src="./app.js"></script>

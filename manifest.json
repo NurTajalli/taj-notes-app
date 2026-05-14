@@ -1,7 +1,7 @@
 {
-  "name": "Notes",
-  "short_name": "Notes",
-  "description": "A simple notes app with offline, device-only storage.",
+  "name": "Journal Taj",
+  "short_name": "Journal Taj",
+  "description": "A personal journal with photo, video, and file attachments. Stored on your device.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

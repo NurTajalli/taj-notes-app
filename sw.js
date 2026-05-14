@@ -1,5 +1,5 @@
 // Simple offline cache for the app shell.
-const CACHE = "notes-v2";
+const CACHE = "notes-v3";
 const ASSETS = [
   "./",
   "./index.html",
