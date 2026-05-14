@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh code when online,
 // falls back to the cache only when offline.
-const CACHE = "journal-v11";
+const CACHE = "journal-v12";
 const ASSETS = [
   "./",
   "./index.html",

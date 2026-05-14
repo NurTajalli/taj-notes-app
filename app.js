@@ -30,6 +30,7 @@ function idbRequest(store, makeReq) {
 const getAllEntries = () => idbRequest("readonly", (os) => os.getAll());
 const putEntry = (entry) => idbRequest("readwrite", (os) => os.put(entry));
 const removeEntry = (id) => idbRequest("readwrite", (os) => os.delete(id));
+const clearAllEntries = () => idbRequest("readwrite", (os) => os.clear());
 
 // One-time migration from the old localStorage version
 async function migrateFromLocalStorage() {
@@ -371,6 +372,11 @@ window.JournalApp = {
   putEntry,
   reload: async () => {
     entries = await getAllEntries();
+    render();
+  },
+  clearAll: async () => {
+    await clearAllEntries();
+    entries = [];
     render();
   },
   onLocalChange: null, // sync.js assigns this to mirror changes to the cloud

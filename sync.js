@@ -193,9 +193,18 @@ function closeAuthModal() {
 
   // Wire up the auth button + modal.
   if (authBtn) {
-    authBtn.addEventListener("click", () => {
+    authBtn.addEventListener("click", async () => {
       if (currentUser) {
-        if (confirm("Sign out? Your entries stay on this device.")) signOut(auth);
+        if (
+          confirm(
+            "Sign out and clear this device?\n\n" +
+              "Synced text entries will come back when you sign in again. " +
+              "Photos/videos aren't synced and will be permanently deleted."
+          )
+        ) {
+          await signOut(auth);
+          await window.JournalApp.clearAll();
+        }
       } else {
         openAuthModal();
       }
