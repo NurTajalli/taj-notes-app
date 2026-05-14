@@ -33,14 +33,24 @@ header {
   position: sticky;
   top: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 14px) 18px 14px;
-  background: var(--bg);
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 48px) 18px 16px;
+  background-image:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.6)),
+    url("./header.jpg");
+  background-size: cover;
+  background-position: center 30%;
   border-bottom: 1px solid var(--border);
 }
 
-header h1 { font-size: 28px; font-weight: 700; }
+header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
 
 main { padding: 12px 14px 40px; }
 
